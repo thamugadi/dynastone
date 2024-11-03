@@ -16,10 +16,10 @@ int main(int argc, char** argv)
   strcpy(instr, "mov eax, `var1, 63`");
   parsed_data* x;
   uint8_t* bytes = compute_delimitations(ks, false, instr, &x);
-  printf("%x", bytes[0]);
-  exit(0);
-  //make_chunks(x, bytes, 7);
+  chunk_struct* chunk = make_chunks(x, bytes, x->binary_size);
 
+  free_chunks(chunk);
+  
   free_parsed_data(x);
   
   ks_free(bytes);

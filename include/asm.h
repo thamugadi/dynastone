@@ -24,7 +24,7 @@ typedef struct chunk_struct {
   struct chunk_struct* next;
 } chunk_struct;
 
-char* generate_c_code(chunk_struct* chunk, char* emit_8); 
+char* generate_c_code(chunk_struct* chunk, char* emit_8, char* emit_16, char* emit_32, char* emit_64, bool big_endian); 
 chunk_struct* make_chunks(parsed_data* pdata, uint8_t* code, size_t code_size);
 void free_chunks(chunk_struct* chunk);
 uint8_t* compute_delimitations(ks_engine* ks, bool big_endian, char* instr, parsed_data** parsed);

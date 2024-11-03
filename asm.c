@@ -8,49 +8,14 @@
 #include "include/asm.h"
 
 #include <keystone/keystone.h>
-char* generate_c_code(chunk_struct* chunk, char* emit_8) {
-  char* c_code = (char*)calloc(1,0x1000);
+
+char* generate_c_code(chunk_struct* chunk, char* emit_8, char* emit_16, char* emit_32, char* emit_64, bool big_endian) {
+  char* c_code = (char*)calloc(1, 0x1000);
   char buffer[0x200];
-  uint8_t base = 0;
-  char* current_var = NULL;
-  int current_start;
-  int current_end;
-  int i;
-  char not_var[8];
-  do {
-    memset(not_var, 0, 8);
-    for (i = 0; i < 8; i++) {
-      if (chunk->bit_array[i].is_bit) {
-        base |= (chunk->bit_array[i].bit << (7 - i));
-	not_var[i] = 0;
-      }
-      else not_var[i] = 1;
-    }
-    //todo: clear the bits that were not found
-    sprintf(buffer, (char*)"%s(0x%02x", emit_8, base);
-    strcat(c_code, buffer);
-    for (i = 0; i < 8; i++) {
-      if (!chunk->bit_array[i].is_bit) {
-	if (chunk->bit_array[i].var_part.name == current_var && chunk->next) {
-	  current_end = chunk->bit_array[i].var_part.var_bit;
-	}
-	else {
-	  if (current_var != NULL) {
-	    //todo: core
-	    strcat(c_code, buffer);
-	  }
-	  current_start = chunk->bit_array[i].var_part.var_bit;
-	  current_end = chunk->bit_array[i].var_part.var_bit;
-	  current_var = chunk->bit_array[i].var_part.name;
-	}
-      }
-    }
-    strcat(c_code, (char*)");\n");
-    chunk = chunk->next;
-    base = 0;
-  } while(chunk);
   return c_code;
 }
+
+//TODO: make other kind of chunks, more precise
 
 //supposes that they differ by one bit, which is 0 in array1 and 1 in array2
 int first_diff_bit(uint8_t* array1, uint8_t* array2, size_t size) {
@@ -130,8 +95,6 @@ uint8_t* compute_delimitations(ks_engine* ks, bool be_arch, char* instr, parsed_
     filled_instrs[i] = replace_instrs(instr, initial_parsed, i);
     if (!filled_instrs[i]) return NULL;
     size_t count;
-    printf("%s\n", filled_instrs[i][0]);
-    printf("%s\n", filled_instrs[i][1]);
     int err1, err2;
     err1 = ks_asm(ks, filled_instrs[i][0], 0, &assembled, &(*parsed)->binary_size, &count);
     err2 = ks_asm(ks, filled_instrs[i][1], 0, &assembled_mo, &(*parsed)->binary_size, &count);
@@ -160,6 +123,5 @@ uint8_t* compute_delimitations(ks_engine* ks, bool be_arch, char* instr, parsed_
   }
   free(filled_instrs);
   *parsed = initial_parsed;
-  printf("%p\n", assembled);
   return assembled;
 }
