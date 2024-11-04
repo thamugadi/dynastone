@@ -12,20 +12,24 @@ int main(int argc, char** argv)
 
   ks_open_arch(&ks, "x64");
   char* instr = (char*)calloc(1,0x100);
-  // strcpy(instr, "addi `var1, 5`, `var2, 5` , `var3, 16`");
-  strcpy(instr, "mov eax, `var1, 32`");
-  parsed_data* x;
-  uint8_t* bytes = compute_delimitations(ks, false, instr, &x);
-  chunk_struct* chunk = make_chunks(x, bytes, x->binary_size);
+  strcpy(instr, "mov rax, `var, 64`");
+  // strcpy(instr, "addi `var1, 5`, `var2, 5`, `var3, 16`");
+  parsed_data* pdata;
+  uint8_t* bytes = compute_delimitations(ks, false, instr, &pdata);
+  chunk_struct* chunk = make_chunks(pdata, bytes, pdata->binary_size);
+  chunk_struct* lv_chunk = make_lv_chunks(chunk, pdata);
 
-  make_lv_chunks(chunk);
+  char* c_code = generate_c_code(lv_chunk, "emit8","emit16","emit32","emit64");
+
+  printf("%s", c_code);
+  
+  free(c_code);
   free_chunks(chunk);
-  
-  free_parsed_data(x);
-  
+  free_chunks(lv_chunk);
+  free_parsed_data(pdata);
   ks_free(bytes);
-  
   free(instr);
+  ks_close(ks);
 
   exit(0);
   /*  const char* arch = argv[1];

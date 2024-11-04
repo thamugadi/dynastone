@@ -9,18 +9,92 @@
 
 #include <keystone/keystone.h>
 
-char* generate_c_code(chunk_struct* chunk, char* emit_8, char* emit_16, char* emit_32, char* emit_64, bool big_endian) {
+char* generate_c_code(chunk_struct* chunk, char* emit_8, char* emit_16, char* emit_32, char* emit_64) {
   char* c_code = (char*)calloc(1, 0x1000);
   char buffer[0x200];
+  uint8_t base;
+  char* current_var = NULL;
+  int current_start = -1, current_end = -1;
+  int current_end_in_byte = -1;
+  int i, shift;
+
+  while (chunk->next) {
+    if (!chunk->is_long_var) {
+      base = 0;
+      for (i = 0; i < 8; i++) {
+        if (chunk->bit_array[i].is_bit)
+          base |= chunk->bit_array[i].bit << (7 - i);
+      }
+
+      sprintf(buffer, "%s(0x%02x", emit_8, base);
+      strcat(c_code, buffer);
+
+      current_var = NULL;
+
+      for (i = 0; i < 8; i++) {
+        if (!chunk->bit_array[i].is_bit) {
+          char* var_name = chunk->bit_array[i].var_part.name;
+          int var_bit = chunk->bit_array[i].var_part.var_bit;
+
+          if (current_var && var_name == current_var &&
+              var_bit == current_end + 1) {
+            current_end = var_bit;
+            current_end_in_byte = i;
+          }
+          else {
+            if (current_var) {
+              int size = current_end - current_start + 1;
+              int mask = (1 << size) - 1;
+              shift = 7 - current_end_in_byte;
+              sprintf(buffer, " | (((%s >> %d) & 0x%02x) << %d)", current_var, current_start, mask, shift);
+              strcat(c_code, buffer);
+            }
+            current_var = var_name;
+            current_start = current_end = var_bit;
+            current_end_in_byte = i;
+          }
+        }
+        else if (current_var) {
+          int size = current_end - current_start + 1;
+          int mask = (1 << size) - 1;
+          shift = 7 - current_end_in_byte;
+          sprintf(buffer, " | (((%s >> %d) & 0x%02x) << %d)", current_var, current_start, mask, shift);
+          strcat(c_code, buffer);
+          current_var = NULL;
+        }
+      }
+      if (current_var) {
+        int size = current_end - current_start + 1;
+        int mask = (1 << size) - 1;
+        shift = 7 - current_end_in_byte;
+        sprintf(buffer, " | (((%s >> %d) & 0x%02x) << %d)", current_var, current_start, mask, shift);
+        strcat(c_code, buffer);
+      }
+
+      strcat(c_code, ");\n");
+      chunk = chunk->next;
+    }
+    else { //long_var
+      char* emit;
+      if (chunk->lv.size == 2) emit = emit_16;
+      if (chunk->lv.size == 4) emit = emit_32;
+      if (chunk->lv.size == 8) emit = emit_64;
+      else {
+	printf("shouldn't happen: %d size in lv\n", (int)chunk->lv.size);
+	exit(0);
+      }
+      sprintf(buffer, "%s(%s);\n", emit, chunk->lv.name);
+      strcat(c_code, buffer);
+      chunk = chunk->next;
+    }
+  }
   return c_code;
 }
 
 //TODO: make other kind of chunks, more precise
 
-chunk_struct* make_lv_chunks(chunk_struct* chunk) {
+chunk_struct* make_lv_chunks(chunk_struct* chunk, parsed_data* pdata) {
   //chunk_struct* new_chunk = (chunk_struct*)calloc(1, sizeof(chunk_struct));
-  int repeat = 1;
-  char* repeated_name = NULL;
   int i;
   int k = 0;
   chunk_struct* head = chunk;
@@ -30,46 +104,19 @@ chunk_struct* make_lv_chunks(chunk_struct* chunk) {
     size_t size;
     int pos;
   } long_vars[MAX_LONG_VARS];
-  while(chunk) {
-    if (repeated_name == NULL && !chunk->bit_array[0].is_bit) {
-      repeated_name = chunk->bit_array[0].var_part.name;
-    }
-    else if (chunk->bit_array[0].is_bit == false && repeated_name == chunk->bit_array[0].var_part.name) {
-      repeat++;
-      for (i = 0; i < 8; i++) {
-        if (chunk->bit_array[i].is_bit) {
-	  repeat = 1;
-	  repeated_name = NULL;
-	}
-      }
-      if (!chunk->next && (repeat == 2 || repeat == 4 || repeat == 8)) {
-	long_vars[k].name = repeated_name;
-	long_vars[k].pos = current_pos;
-	long_vars[k].size = repeat;
-	k++;
-	repeat = 1;
-	repeated_name = NULL;
-      }
-    }
-    else if (((chunk->bit_array[0].is_bit || repeated_name != chunk->bit_array[0].var_part.name) &&
-	      (repeat == 2 || repeat == 4 || repeat == 8))) {
-      long_vars[k].name = repeated_name;
-      long_vars[k].pos = current_pos;
-      long_vars[k].size = repeat;
+  // khod pdata arg
+
+  while(pdata) {
+    if (pdata->binary_pos % 8 == 0 && (pdata->size == 16 || pdata->size == 32 || pdata->size == 64)) {
+      long_vars[k].name = pdata->name;
+      long_vars[k].size = pdata->size / 8;
+      long_vars[k].pos = pdata->binary_pos / 8;
       k++;
-      repeat = 1;
-      repeated_name = NULL;
+      pdata = pdata->next;
     }
     else {
-      repeat = 1;
-      repeated_name = NULL;
+      pdata = pdata->next;
     }
-    current_pos++;
-    chunk = chunk->next;
-  }
-
-  for (i = 0; i < k; i++) {
-    printf("X\n");
   }
   
   chunk_struct* new_chunk = (chunk_struct*)calloc(1, sizeof(chunk_struct));
@@ -87,7 +134,6 @@ chunk_struct* make_lv_chunks(chunk_struct* chunk) {
 	new_chunk->next = (chunk_struct*)calloc(1, sizeof(chunk_struct));
 	new_chunk = new_chunk->next;
 	for (i = 0; i < long_vars[j].size; i++) {
-	  printf("%d\n", i);
 	  if (chunk) chunk = chunk->next;
 	}
 	j++;
@@ -108,9 +154,9 @@ chunk_struct* make_lv_chunks(chunk_struct* chunk) {
 	  new_chunk->bit_array[i].var_part.size= chunk->bit_array[i].var_part.size;
 	  new_chunk->bit_array[i].var_part.var_bit = chunk->bit_array[i].var_part.var_bit;
 	}
-	new_chunk->next = (chunk_struct*)calloc(1, sizeof(chunk_struct));
-	new_chunk = new_chunk->next;
       }
+      new_chunk->next = (chunk_struct*)calloc(1, sizeof(chunk_struct));
+      new_chunk = new_chunk->next;
     }
     chunk = chunk->next;
     current_pos++;
