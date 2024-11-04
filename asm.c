@@ -9,6 +9,11 @@
 
 #include <keystone/keystone.h>
 
+void delete_last_char(char *s, char c) {
+  char *last = strrchr(s, c);
+  if (last) memmove(last, last + 1, strlen(last));
+}
+
 char* generate_c_code(chunk_struct* chunk, char* emit_8, char* emit_16, char* emit_32, char* emit_64) {
   char* c_code = (char*)calloc(1, 0x1000);
   char buffer[0x200];
@@ -46,7 +51,26 @@ char* generate_c_code(chunk_struct* chunk, char* emit_8, char* emit_16, char* em
               int size = current_end - current_start + 1;
               int mask = (1 << size) - 1;
               shift = 7 - current_end_in_byte;
-              sprintf(buffer, " | (((%s >> %d) & 0x%02x) << %d)", current_var, current_start, mask, shift);
+
+	      int len = sprintf(buffer, " | ((");
+	      if (current_start) {
+	        len += sprintf(buffer+len, "(%s >> %d)", current_var, current_start);
+	      }
+	      else {
+	        len += sprintf(buffer+len, "%s", current_var);
+	      }
+	      if (mask != 0xff) {
+	        len += sprintf(buffer+len, " & 0x%02x)", mask); 
+	      }
+	      else {
+		delete_last_char(buffer, '(');
+	      }
+	      if (shift) {
+	        len += sprintf(buffer+len, " << %d)", shift);
+	      }
+	      else {
+		delete_last_char(buffer, '(');
+	      }
               strcat(c_code, buffer);
             }
             current_var = var_name;
@@ -58,7 +82,26 @@ char* generate_c_code(chunk_struct* chunk, char* emit_8, char* emit_16, char* em
           int size = current_end - current_start + 1;
           int mask = (1 << size) - 1;
           shift = 7 - current_end_in_byte;
-          sprintf(buffer, " | (((%s >> %d) & 0x%02x) << %d)", current_var, current_start, mask, shift);
+
+	  int len = sprintf(buffer, " | ((");
+	  if (current_start) {
+	    len += sprintf(buffer+len, "(%s >> %d)", current_var, current_start);
+	  }
+	  else {
+	    len += sprintf(buffer+len, "%s", current_var);
+	  }
+	  if (mask != 0xff) {
+	    len += sprintf(buffer+len, " & 0x%02x)", mask); 
+	  }
+	  else {
+	    delete_last_char(buffer, '(');
+	  }
+	  if (shift) {
+	    len += sprintf(buffer+len, " << %d)", shift);
+	  }
+	  else {
+	    delete_last_char(buffer, '(');
+	  }
           strcat(c_code, buffer);
           current_var = NULL;
         }
@@ -67,7 +110,26 @@ char* generate_c_code(chunk_struct* chunk, char* emit_8, char* emit_16, char* em
         int size = current_end - current_start + 1;
         int mask = (1 << size) - 1;
         shift = 7 - current_end_in_byte;
-        sprintf(buffer, " | (((%s >> %d) & 0x%02x) << %d)", current_var, current_start, mask, shift);
+
+	int len = sprintf(buffer, " | ((");
+        if (current_start) {
+	  len += sprintf(buffer+len, "(%s >> %d)", current_var, current_start);
+	}
+	else {
+          len += sprintf(buffer+len, "%s", current_var);
+        }
+        if (mask != 0xff) {
+          len += sprintf(buffer+len, " & 0x%02x)", mask); 
+        }
+	else {
+	  delete_last_char(buffer, '(');
+	}
+	if (shift) {
+	  len += sprintf(buffer+len, " << %d)", shift);
+	}
+	else {
+	  delete_last_char(buffer, '(');
+	}
         strcat(c_code, buffer);
       }
 
@@ -110,7 +172,6 @@ chunk_struct* make_lv_chunks(chunk_struct* chunk, parsed_data* pdata) {
     if (pdata->binary_pos % 8 == 0 && (pdata->size == 16 || pdata->size == 32 || pdata->size == 64)) {
       long_vars[k].name = pdata->name;
       long_vars[k].size = pdata->size / 8;
-      printf("%d\n", pdata->binary_pos);
       long_vars[k].pos = pdata->binary_pos / 8;
       k++;
       pdata = pdata->next;
@@ -255,7 +316,7 @@ uint8_t* compute_delimitations(ks_engine* ks, bool be_arch, char* instr, parsed_
     }
     (*parsed)->binary_pos = 1 + first_diff_bit(assembled, assembled_mo, (*parsed)->binary_size);
     if (be_arch) (*parsed)->binary_pos -= (*parsed)->size;
-    else (*parsed)->binary_pos -= 8;
+    else (*parsed)->binary_pos -= 8; // unsure if correct
     free(filled_instrs[i][0]);
     free(filled_instrs[i][1]);
     free(filled_instrs[i]);
