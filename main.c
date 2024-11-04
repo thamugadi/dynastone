@@ -10,12 +10,12 @@ int main(int argc, char** argv)
   //court-circuiter le truc si pas de `
   ks_engine *ks;
 
-  ks_open_arch(&ks, "x64");
+  ks_open_arch(&ks, "ppc64be");
   char* instr = (char*)calloc(1,0x100);
-  strcpy(instr, "mov rax, `var, 64`");
-  // strcpy(instr, "addi `var1, 5`, `var2, 5`, `var3, 16`");
+  // strcpy(instr, "mov rax, `var, 64`");
+  strcpy(instr, "addi `var1, 5`, `var2, 5`, `var3, 16`");
   parsed_data* pdata;
-  uint8_t* bytes = compute_delimitations(ks, false, instr, &pdata);
+  uint8_t* bytes = compute_delimitations(ks, true, instr, &pdata);
   chunk_struct* chunk = make_chunks(pdata, bytes, pdata->binary_size);
   chunk_struct* lv_chunk = make_lv_chunks(chunk, pdata);
 

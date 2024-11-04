@@ -77,8 +77,8 @@ char* generate_c_code(chunk_struct* chunk, char* emit_8, char* emit_16, char* em
     else { //long_var
       char* emit;
       if (chunk->lv.size == 2) emit = emit_16;
-      if (chunk->lv.size == 4) emit = emit_32;
-      if (chunk->lv.size == 8) emit = emit_64;
+      else if (chunk->lv.size == 4) emit = emit_32;
+      else if (chunk->lv.size == 8) emit = emit_64;
       else {
 	printf("shouldn't happen: %d size in lv\n", (int)chunk->lv.size);
 	exit(0);
@@ -110,6 +110,7 @@ chunk_struct* make_lv_chunks(chunk_struct* chunk, parsed_data* pdata) {
     if (pdata->binary_pos % 8 == 0 && (pdata->size == 16 || pdata->size == 32 || pdata->size == 64)) {
       long_vars[k].name = pdata->name;
       long_vars[k].size = pdata->size / 8;
+      printf("%d\n", pdata->binary_pos);
       long_vars[k].pos = pdata->binary_pos / 8;
       k++;
       pdata = pdata->next;
