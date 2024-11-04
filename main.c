@@ -10,14 +10,15 @@ int main(int argc, char** argv)
   //court-circuiter le truc si pas de `
   ks_engine *ks;
 
-  ks_open_arch(&ks, "x64nasm");
+  ks_open_arch(&ks, "x64");
   char* instr = (char*)calloc(1,0x100);
-  //strcpy(instr, "addi `var1, 5`, `var2, 5` , `var3, 16`");
-  strcpy(instr, "mov eax, `var1, 63`");
+  // strcpy(instr, "addi `var1, 5`, `var2, 5` , `var3, 16`");
+  strcpy(instr, "mov eax, `var1, 64`");
   parsed_data* x;
   uint8_t* bytes = compute_delimitations(ks, false, instr, &x);
   chunk_struct* chunk = make_chunks(x, bytes, x->binary_size);
 
+  make_lv_chunks(chunk);
   free_chunks(chunk);
   
   free_parsed_data(x);

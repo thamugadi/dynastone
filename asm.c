@@ -17,24 +17,109 @@ char* generate_c_code(chunk_struct* chunk, char* emit_8, char* emit_16, char* em
 
 //TODO: make other kind of chunks, more precise
 
-//supposes that they differ by one bit, which is 0 in array1 and 1 in array2
-int first_diff_bit(uint8_t* array1, uint8_t* array2, size_t size) {
-  for (size_t i = 0; i < size; i++) {
-    if (array1[i] != array2[i]) {
-      uint8_t diff = array1[i] ^ array2[i];
-      if (diff & 0b10000000) return i * 8 + 0;
-      if (diff & 0b1000000) return i * 8 + 1;
-      if (diff & 0b100000) return i * 8 + 2;
-      if (diff & 0b10000) return i * 8 + 3;
-      if (diff & 0b1000) return i * 8 + 4;
-      if (diff & 0b100) return i * 8 + 5;
-      if (diff & 0b10) return i * 8 + 6;
-      if (diff & 0b1) return i * 8 + 7;
-    }
+chunk_struct* make_lv_chunks(chunk_struct* chunk) {
+  //chunk_struct* new_chunk = (chunk_struct*)calloc(1, sizeof(chunk_struct));
+  int repeat = 0;
+  char* repeated_name = NULL;
+  int i;
+  int k = 0;
+  chunk_struct* head = chunk;
+  int current_pos = 0;
+  struct long_vars {
+    char* name;
+    size_t size;
+    int pos;
   }
-  return -1;
+  long_vars[MAX_LONG_VARS];
+  while(chunk) {
+    if (repeated_name == NULL && !chunk->bit_array[0].is_bit) {
+      repeated_name = chunk->bit_array[0].var_part.name;
+    }
+    else if (chunk->bit_array[0].is_bit == false && repeated_name == chunk->bit_array[0].var_part.name) {
+      repeat++;
+      for (i = 0; i < 8; i++) {
+        if (chunk->bit_array[i].is_bit) {
+	  repeat = 0;
+	  repeated_name = NULL;
+	}
+      }
+      if (!chunk->next && (repeat == 2 || repeat == 4 || repeat == 8)) {
+	long_vars[k].name = repeated_name;
+	long_vars[k].pos = current_pos;
+	long_vars[k].size = repeat;
+	k++;
+	repeat = 0;
+	repeated_name = NULL;
+      }
+    }
+    else if (((chunk->bit_array[0].is_bit || repeated_name != chunk->bit_array[0].var_part.name) &&
+	      (repeat == 2 || repeat == 4 || repeat == 8))) {
+      long_vars[k].name = repeated_name;
+      long_vars[k].pos = current_pos;
+      long_vars[k].size = repeat;
+      k++;
+      repeat = 0;
+      repeated_name = NULL;
+    }
+    else {
+      repeat = 0;
+      repeated_name = NULL;
+    }
+    current_pos++;
+    chunk = chunk->next;
+  }
+
+  for (i = 0; i < k; i++) {
+    printf("k\n");
+  }
+  
+  
+  chunk_struct* new_chunk = (chunk_struct*)calloc(1, sizeof(chunk_struct));
+
+  current_pos = 0;
+  int j = 0;
+  chunk = head;
+  chunk_struct* new_chunk_head = new_chunk;
+  while(chunk) {
+    if (j <= k) {
+      if (current_pos == long_vars[j].pos) {
+	new_chunk->is_long_var = true;
+	new_chunk->lv.name = long_vars[j].name;
+	new_chunk->lv.size = long_vars[j].size;
+	new_chunk->next = (chunk_struct*)calloc(1, sizeof(chunk_struct));
+	new_chunk = new_chunk->next;
+        j++;
+	for (i = 0; i < long_vars[j].size; i++) {
+	  chunk = chunk->next;
+	}
+	continue;
+      }
+      else goto handle_normal;
+    }
+    else {
+      handle_normal:
+      for (i = 0; i < 8; i++) {
+	new_chunk->is_long_var = false;
+	new_chunk->bit_array[i].is_bit = chunk->bit_array[i].is_bit;
+	if (new_chunk->bit_array[i].is_bit) {
+	  new_chunk->bit_array[i].bit = chunk->bit_array[i].bit;
+	}
+	else {
+	  new_chunk->bit_array[i].var_part.name = chunk->bit_array[i].var_part.name;
+	  new_chunk->bit_array[i].var_part.size= chunk->bit_array[i].var_part.size;
+	  new_chunk->bit_array[i].var_part.var_bit = chunk->bit_array[i].var_part.var_bit;
+	}
+	new_chunk->next = (chunk_struct*)calloc(1, sizeof(chunk_struct));
+	new_chunk = new_chunk->next;
+      }
+    }
+    chunk = chunk->next;
+    current_pos++;
+  }
+  return new_chunk_head;
 }
 
+//supposes that they differ by one bit, which is 0 in array1 and 1 in array2
 // to run before free_parsed_data
 void free_chunks(chunk_struct* chunk) {
   if (chunk->next) {
@@ -63,6 +148,7 @@ chunk_struct* make_chunks(parsed_data* pdata, uint8_t* code, size_t code_size) {
     }
     for (i = 0; i < 8; i++, current_bit++) {
       if (current_bit >= pdata->binary_pos && current_bit < pdata->binary_pos + pdata->size) {
+	chunk->is_long_var = false;
 	chunk->bit_array[i].is_bit = false;
 	chunk->bit_array[i].var_part.name = pdata->name;
 	chunk->bit_array[i].var_part.size = pdata->size;
@@ -70,6 +156,7 @@ chunk_struct* make_chunks(parsed_data* pdata, uint8_t* code, size_t code_size) {
 	if (current_bit == pdata->binary_pos + pdata->size - 1) pdata = pdata->next;
       }
       else {
+	chunk->is_long_var = false;
 	chunk->bit_array[i].is_bit = true;
 	chunk->bit_array[i].bit = (code[byte] >> (7 - i)) & 1;
       }
@@ -77,6 +164,24 @@ chunk_struct* make_chunks(parsed_data* pdata, uint8_t* code, size_t code_size) {
     byte++;
   }
   return head;
+}
+
+//supposes that they differ by one bit, which is 0 in array1 and 1 in array2
+int first_diff_bit(uint8_t* array1, uint8_t* array2, size_t size) {
+  for (size_t i = 0; i < size; i++) {
+    if (array1[i] != array2[i]) {
+      uint8_t diff = array1[i] ^ array2[i];
+      if (diff & 0b10000000) return i * 8 + 0;
+      if (diff & 0b1000000) return i * 8 + 1;
+      if (diff & 0b100000) return i * 8 + 2;
+      if (diff & 0b10000) return i * 8 + 3;
+      if (diff & 0b1000) return i * 8 + 4;
+      if (diff & 0b100) return i * 8 + 5;
+      if (diff & 0b10) return i * 8 + 6;
+      if (diff & 0b1) return i * 8 + 7;
+    }
+  }
+  return -1;
 }
 
 uint8_t* compute_delimitations(ks_engine* ks, bool be_arch, char* instr, parsed_data** parsed) {
@@ -116,8 +221,6 @@ uint8_t* compute_delimitations(ks_engine* ks, bool be_arch, char* instr, parsed_
     else {
       ks_free(assembled);
       ks_free(assembled_mo);
-      printf("????\n");
-      exit(0);
     }
     i++;
   }
