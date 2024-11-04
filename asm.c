@@ -19,7 +19,7 @@ char* generate_c_code(chunk_struct* chunk, char* emit_8, char* emit_16, char* em
 
 chunk_struct* make_lv_chunks(chunk_struct* chunk) {
   //chunk_struct* new_chunk = (chunk_struct*)calloc(1, sizeof(chunk_struct));
-  int repeat = 0;
+  int repeat = 1;
   char* repeated_name = NULL;
   int i;
   int k = 0;
@@ -29,8 +29,7 @@ chunk_struct* make_lv_chunks(chunk_struct* chunk) {
     char* name;
     size_t size;
     int pos;
-  }
-  long_vars[MAX_LONG_VARS];
+  } long_vars[MAX_LONG_VARS];
   while(chunk) {
     if (repeated_name == NULL && !chunk->bit_array[0].is_bit) {
       repeated_name = chunk->bit_array[0].var_part.name;
@@ -39,7 +38,7 @@ chunk_struct* make_lv_chunks(chunk_struct* chunk) {
       repeat++;
       for (i = 0; i < 8; i++) {
         if (chunk->bit_array[i].is_bit) {
-	  repeat = 0;
+	  repeat = 1;
 	  repeated_name = NULL;
 	}
       }
@@ -48,7 +47,7 @@ chunk_struct* make_lv_chunks(chunk_struct* chunk) {
 	long_vars[k].pos = current_pos;
 	long_vars[k].size = repeat;
 	k++;
-	repeat = 0;
+	repeat = 1;
 	repeated_name = NULL;
       }
     }
@@ -58,11 +57,11 @@ chunk_struct* make_lv_chunks(chunk_struct* chunk) {
       long_vars[k].pos = current_pos;
       long_vars[k].size = repeat;
       k++;
-      repeat = 0;
+      repeat = 1;
       repeated_name = NULL;
     }
     else {
-      repeat = 0;
+      repeat = 1;
       repeated_name = NULL;
     }
     current_pos++;
@@ -70,9 +69,8 @@ chunk_struct* make_lv_chunks(chunk_struct* chunk) {
   }
 
   for (i = 0; i < k; i++) {
-    printf("k\n");
+    printf("X\n");
   }
-  
   
   chunk_struct* new_chunk = (chunk_struct*)calloc(1, sizeof(chunk_struct));
 
@@ -81,17 +79,18 @@ chunk_struct* make_lv_chunks(chunk_struct* chunk) {
   chunk = head;
   chunk_struct* new_chunk_head = new_chunk;
   while(chunk) {
-    if (j <= k) {
+    if (j < k) {
       if (current_pos == long_vars[j].pos) {
 	new_chunk->is_long_var = true;
 	new_chunk->lv.name = long_vars[j].name;
 	new_chunk->lv.size = long_vars[j].size;
 	new_chunk->next = (chunk_struct*)calloc(1, sizeof(chunk_struct));
 	new_chunk = new_chunk->next;
-        j++;
 	for (i = 0; i < long_vars[j].size; i++) {
-	  chunk = chunk->next;
+	  printf("%d\n", i);
+	  if (chunk) chunk = chunk->next;
 	}
+	j++;
 	continue;
       }
       else goto handle_normal;
@@ -209,7 +208,7 @@ uint8_t* compute_delimitations(ks_engine* ks, bool be_arch, char* instr, parsed_
     }
     (*parsed)->binary_pos = 1 + first_diff_bit(assembled, assembled_mo, (*parsed)->binary_size);
     if (be_arch) (*parsed)->binary_pos -= (*parsed)->size;
-    else (*parsed)->binary_pos -= 7;
+    else (*parsed)->binary_pos -= 8;
     free(filled_instrs[i][0]);
     free(filled_instrs[i][1]);
     free(filled_instrs[i]);
