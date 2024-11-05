@@ -19,32 +19,43 @@ int main(int argc, char** argv)
     }
     i++;
   }
+  char *emit_8, *emit_16, *emit_32, *emit_64;
 
-  if (direct) {
-    // directly emit
-  }
-
-  char* emit_8 = (char*)calloc(1, 0x30);
-  char* emit_16 = (char*)calloc(1, 0x30);
-  char* emit_32 = (char*)calloc(1, 0x30);
-  char* emit_64 = (char*)calloc(1, 0x30);
-  if (argc < 4) strcpy(emit_8, "emit_8"); else strcpy(emit_8, argv[3]);
-  if (argc < 5) strcpy(emit_16, "emit_16"); else strcpy(emit_16, argv[4]);
-  if (argc < 6) strcpy(emit_32, "emit_32"); else strcpy(emit_32, argv[5]);
-  if (argc < 7) strcpy(emit_64, "emit_64"); else strcpy(emit_64, argv[6]);
-
+  if (argc < 4) emit_8 = emit_8_default; else emit_8 = argv[3];
+  if (argc < 5) emit_16 = emit_16_default; else emit_16 = argv[4];
+  if (argc < 6) emit_32 = emit_32_default; else emit_32 = argv[5];
+  if (argc < 7) emit_64 = emit_64_default; else emit_64 = argv[6];
+  
   char* arch = argv[1];
   char* instr = argv[2];
   ks_engine *ks;
   
   ks_open_arch(&ks, arch);
+
+  char* c_code = NULL;
+  uint8_t* bytes;
+  
+  if (direct) {
+    //todo: allow for grouping
+    size_t size;
+    size_t c;
+    char buffer[0x100];
+    c_code = (char*)calloc(1, MAX_C_CODE_LEN);
+    ks_asm(ks, instr, 0, &bytes, &size, &c);
+    for (i = 0; i < size; i++) {
+      sprintf(buffer, "%s(%02x);\n", emit_8, bytes[i]);
+      strcat(c_code, buffer);
+    }
+    printf("%s", c_code);
+    exit(0);
+  }
   
   parsed_data* pdata;
   
-  uint8_t* bytes = compute_delimitations(ks, is_big_endian_architecture(arch), instr, &pdata);
+  bytes = compute_delimitations(ks, is_big_endian_architecture(arch), instr, &pdata);
   chunk_struct* chunk = make_chunks(pdata, bytes, pdata->binary_size);
   chunk_struct* lv_chunk = make_lv_chunks(chunk, pdata);
-  char* c_code = generate_c_code(lv_chunk, emit_8, emit_16, emit_32, emit_64);
+  c_code = generate_c_code(lv_chunk, emit_8, emit_16, emit_32, emit_64);
 
   printf("%s", c_code);
   

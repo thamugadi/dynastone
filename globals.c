@@ -3,6 +3,11 @@
 #include <stdio.h>
 #include <string.h>
 
+char emit_8_default[] = "emit_8";
+char emit_16_default[] = "emit_16";
+char emit_32_default[] = "emit_32";
+char emit_64_default[] = "emit_64";
+
 const char* list_arch = 
   "x16:       X86 16bit, Intel syntax\n"
   "x32:       X86 32bit, Intel syntax\n"
