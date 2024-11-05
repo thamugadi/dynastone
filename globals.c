@@ -36,7 +36,7 @@ const char* list_arch =
   "systemz:   SystemZ (S390x)\n"
   "evm:       Ethereum Virtual Machine";
 
-int is_big_endian_architecture(const char *arch) {
+bool is_big_endian_architecture(const char *arch) {
   if (!strcmp(arch, "armbe")) return 1;
   if (!strcmp(arch, "thumbbe")) return 1;
   if (!strcmp(arch, "armv8be")) return 1;

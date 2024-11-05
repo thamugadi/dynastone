@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "include/parser.h"
+#include "include/globals.h"
 
 void free_parsed_data(parsed_data* p) {
   if (p->name) free(p->name);
@@ -62,17 +63,6 @@ char** replace_instrs(char* instr, parsed_data* parsed, int n){
 }
 
 parsed_data* parse(const char* input, int* ll_size) {
-  /*  int i = 0;
-  bool a = false;
-  while(input[i]) {
-    if (input[i] == '`') {
-      a = true;
-      break;
-    }
-    i++;
-  }
-  if (!a) return NULL;
-  */
   parsed_data* variables_ll = (parsed_data*)calloc(1, sizeof(parsed_data));
   parsed_data* last_ll;
   parsed_data* head = variables_ll;
@@ -86,7 +76,7 @@ parsed_data* parse(const char* input, int* ll_size) {
   int need_to_free = 0;
   while (input[pos]) {
     if (in_backtick_expr) {
-      if (input[pos] == '`') {
+      if (input[pos] == SPECIAL) {
 	need_to_free = 1;
 	variables_ll->end = pos;
 	variables_ll->next = (parsed_data*)calloc(1, sizeof(parsed_data));
@@ -111,7 +101,7 @@ parsed_data* parse(const char* input, int* ll_size) {
       }
     }
     else {
-      if (input[pos] == '`') {
+      if (input[pos] == SPECIAL) {
 	in_backtick_expr = 1;
 	name_part = 1;
 	name_pos = 0;
