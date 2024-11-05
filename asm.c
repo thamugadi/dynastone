@@ -260,7 +260,9 @@ chunk_struct* make_chunks(parsed_data* pdata, uint8_t* code, size_t code_size) {
 	chunk->bit_array[i].var_part.name = pdata->name;
 	chunk->bit_array[i].var_part.size = pdata->size;
 	chunk->bit_array[i].var_part.var_bit = current_bit - pdata->binary_pos;
-	if (current_bit == pdata->binary_pos + pdata->size - 1) pdata = pdata->next;
+	if (current_bit == pdata->binary_pos + pdata->size - 1) {
+	  if (pdata->next) pdata = pdata->next;
+	}
       }
       else {
 	chunk->is_long_var = false;
