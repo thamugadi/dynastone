@@ -15,6 +15,8 @@ typedef struct parsed_data {
   struct parsed_data* next;
 } parsed_data;
 
+char* reverse_lines(char *str); 
+void delete_last_char(char *s, char c); 
 int replace_section(char* input_str, int start, int end, char* replacement);
 char** replace_instrs(char* instr, parsed_data* parsed, int n);
 parsed_data* parse(const char* input, int* ll_size);

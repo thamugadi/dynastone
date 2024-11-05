@@ -9,12 +9,7 @@
 
 #include <keystone/keystone.h>
 
-void delete_last_char(char *s, char c) {
-  char *last = strrchr(s, c);
-  if (last) memmove(last, last + 1, strlen(last));
-}
-
-char* generate_c_code(chunk_struct* chunk, char* emit_8, char* emit_16, char* emit_32, char* emit_64) {
+char* generate_c_code(chunk_struct* chunk, char* emit_8, char* emit_16, char* emit_32, char* emit_64, int* size) {
   char* c_code = (char*)calloc(1, 0x1000);
   char buffer[0x200];
   uint8_t base;
@@ -22,6 +17,7 @@ char* generate_c_code(chunk_struct* chunk, char* emit_8, char* emit_16, char* em
   int current_start = -1, current_end = -1;
   int current_end_in_byte = -1;
   int i, shift;
+  *size = 0;
 
   while (chunk->next) {
     if (!chunk->is_long_var) {
@@ -31,7 +27,9 @@ char* generate_c_code(chunk_struct* chunk, char* emit_8, char* emit_16, char* em
           base |= chunk->bit_array[i].bit << (7 - i);
       }
 
-      sprintf(buffer, "%s(0x%02x", emit_8, base);
+      *size += 1;
+      if (base) sprintf(buffer, "%s(0x%02x", emit_8, base);
+      else sprintf(buffer, "%s(", emit_8);
       strcat(c_code, buffer);
 
       current_var = NULL;
@@ -52,7 +50,9 @@ char* generate_c_code(chunk_struct* chunk, char* emit_8, char* emit_16, char* em
               int mask = (1 << size) - 1;
               shift = 7 - current_end_in_byte;
 
-	      int len = sprintf(buffer, " | ((");
+	      int len;
+	      if (base) len = sprintf(buffer, " | ((");
+	      else len = sprintf(buffer, "((");
 	      if (current_start) {
 	        len += sprintf(buffer+len, "(%s >> %d)", current_var, current_start);
 	      }
@@ -145,6 +145,7 @@ char* generate_c_code(chunk_struct* chunk, char* emit_8, char* emit_16, char* em
 	printf("shouldn't happen: %d size in lv\n", (int)chunk->lv.size);
 	exit(0);
       }
+      *size += chunk->lv.size;
       sprintf(buffer, "%s(%s);\n", emit, chunk->lv.name);
       strcat(c_code, buffer);
       chunk = chunk->next;
@@ -153,10 +154,7 @@ char* generate_c_code(chunk_struct* chunk, char* emit_8, char* emit_16, char* em
   return c_code;
 }
 
-//TODO: make other kind of chunks, more precise
-
 chunk_struct* make_lv_chunks(chunk_struct* chunk, parsed_data* pdata) {
-  //chunk_struct* new_chunk = (chunk_struct*)calloc(1, sizeof(chunk_struct));
   int i;
   int k = 0;
   chunk_struct* head = chunk;
@@ -166,7 +164,6 @@ chunk_struct* make_lv_chunks(chunk_struct* chunk, parsed_data* pdata) {
     size_t size;
     int pos;
   } long_vars[MAX_LONG_VARS];
-  // khod pdata arg
 
   while(pdata) {
     if (pdata->binary_pos % 8 == 0 && (pdata->size == 16 || pdata->size == 32 || pdata->size == 64)) {
@@ -196,7 +193,11 @@ chunk_struct* make_lv_chunks(chunk_struct* chunk, parsed_data* pdata) {
 	new_chunk->next = (chunk_struct*)calloc(1, sizeof(chunk_struct));
 	new_chunk = new_chunk->next;
 	for (i = 0; i < long_vars[j].size; i++) {
-	  if (chunk) chunk = chunk->next;
+	  current_pos++;
+	  if (chunk) {
+	    chunk = chunk->next;
+	  }
+	  
 	}
 	j++;
 	continue;
@@ -223,10 +224,10 @@ chunk_struct* make_lv_chunks(chunk_struct* chunk, parsed_data* pdata) {
     chunk = chunk->next;
     current_pos++;
   }
+
   return new_chunk_head;
 }
 
-//supposes that they differ by one bit, which is 0 in array1 and 1 in array2
 // to run before free_parsed_data
 void free_chunks(chunk_struct* chunk) {
   if (chunk->next) {
@@ -261,7 +262,9 @@ chunk_struct* make_chunks(parsed_data* pdata, uint8_t* code, size_t code_size) {
 	chunk->bit_array[i].var_part.size = pdata->size;
 	chunk->bit_array[i].var_part.var_bit = current_bit - pdata->binary_pos;
 	if (current_bit == pdata->binary_pos + pdata->size - 1) {
-	  if (pdata->next) pdata = pdata->next;
+	  if (pdata->next) {
+	    pdata = pdata->next;
+	  }
 	}
       }
       else {
@@ -313,7 +316,7 @@ uint8_t* compute_delimitations(ks_engine* ks, bool be_arch, char* instr, parsed_
     err1 = ks_asm(ks, filled_instrs[i][0], 0, &assembled, &(*parsed)->binary_size, &count);
     err2 = ks_asm(ks, filled_instrs[i][1], 0, &assembled_mo, &(*parsed)->binary_size, &count);
     if (err1 | err2) {
-      printf("failed\n");
+      printf("failed, can't assemble %s and %s\n", filled_instrs[i][0], filled_instrs[i][1]);
       exit(0);
     }
     (*parsed)->binary_pos = 1 + first_diff_bit(assembled, assembled_mo, (*parsed)->binary_size);

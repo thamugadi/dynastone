@@ -1,5 +1,5 @@
 # jit-assistant
-This project uses Keystone Assembler to assemble instructions by leaving "holes" in certain operands, to be replaced by a variable, which is specified along with its size using a special syntax. At the end, a C code is generated, intended to be the call to a code emitter, such as those commonly used in JIT compilers.
+This project uses Keystone Assembler to assemble instructions by leaving "holes" in certain operands, which are to be replaced by a variable specified along with its size using a special syntax. At the end, a C code is generated, intended to contain calls to an emitter, such as those commonly used in JIT compilers.
 
 Example:
 
@@ -17,3 +17,4 @@ emit_16(var3);
 The user must specify the maximum operand size, in bits. If there is a minimum size below which the instruction structure changes, it is the user's responsibility to ensure the specified variable does not fall below this size.
 
 # Integration with text editors
+An interesting application of this project could be integration with text editors to directly generate calls to emitters, based on instructions written with placeholders in the syntax of the tool, which would be written in comments.

@@ -41,6 +41,17 @@ const char* list_arch =
   "systemz:   SystemZ (S390x)\n"
   "evm:       Ethereum Virtual Machine";
 
+char* must_inverse_bytes(const char *arch) {
+  if (!strcmp(arch, "arm")) return "armbe";
+  if (!strcmp(arch, "thumb")) return "thumbbe";
+  if (!strcmp(arch, "armv8")) return "armv8be";
+  if (!strcmp(arch, "thumbv8")) return "thumbv8be";
+  if (!strcmp(arch, "mips")) return "mipsbe";
+  if (!strcmp(arch, "mips64")) return "mips64be";
+  if (!strcmp(arch, "ppc64")) return "ppc64be";
+  if (!strcmp(arch, "sparc")) return "sparcbe";
+  return NULL;
+}
 bool is_big_endian_architecture(const char *arch) {
   if (!strcmp(arch, "armbe")) return 1;
   if (!strcmp(arch, "thumbbe")) return 1;
@@ -127,6 +138,7 @@ ks_err ks_open_arch(ks_engine** ks, const char* arch) {
   if (!strcmp(arch, "systemz")) return ks_open(KS_ARCH_SYSTEMZ, KS_MODE_BIG_ENDIAN, ks);
   if (!strcmp(arch, "evm")) return ks_open(KS_ARCH_EVM, KS_MODE_LITTLE_ENDIAN, ks); 
   printf("Unsupported architecture: %s\n", arch);
-  printf("List of architectures:\n%s", list_arch);
+  printf("List of architectures:\n%s\n", list_arch);
+  exit(-1);
   return (ks_err)-1;
 }

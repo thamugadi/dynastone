@@ -30,7 +30,13 @@ int main(int argc, char** argv)
   char* instr = argv[2];
   ks_engine *ks;
   
-  ks_open_arch(&ks, arch);
+  char* arch_be_inverse = must_inverse_bytes(arch);
+  if (arch_be_inverse && !direct) {
+    ks_open_arch(&ks, arch_be_inverse);
+  }
+  else {
+    ks_open_arch(&ks, arch);
+  }
 
   char* c_code = NULL;
   uint8_t* bytes;
@@ -52,10 +58,21 @@ int main(int argc, char** argv)
   
   parsed_data* pdata;
   
-  bytes = compute_delimitations(ks, is_big_endian_architecture(arch), instr, &pdata);
+  if (arch_be_inverse) bytes = compute_delimitations(ks, true, instr, &pdata);
+  else bytes = compute_delimitations(ks, is_big_endian_architecture(arch), instr, &pdata);
+
   chunk_struct* chunk = make_chunks(pdata, bytes, pdata->binary_size);
   chunk_struct* lv_chunk = make_lv_chunks(chunk, pdata);
-  c_code = generate_c_code(lv_chunk, emit_8, emit_16, emit_32, emit_64);
+
+  int size;
+  c_code = generate_c_code(lv_chunk, emit_8, emit_16, emit_32, emit_64, &size);
+  char* c_code_inv;
+  
+  if (arch_be_inverse) {
+    c_code_inv = reverse_lines(c_code);
+    free(c_code);
+    c_code = c_code_inv;
+  }
 
   printf("%s", c_code);
   

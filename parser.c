@@ -2,8 +2,48 @@
 #include <stdlib.h>
 #include <string.h>
 #include "include/parser.h"
+#include "include/asm.h"
 #include "include/globals.h"
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+char* reverse_lines(char* s) {
+  char* new_string = (char*)calloc(1, MAX_C_CODE_LEN);
+  int len = strlen(s);
+  int i;
+  int last_pos = len;
+  int pos = 0;
+  for (i = len - 1; i >= 0; i--) {
+    if (s[i] == '\n') {
+      if (last_pos != i + 1) {
+        int line_len = last_pos - i - 1;
+        strncpy(new_string + pos, s + i + 1, line_len);
+        pos += line_len;
+        new_string[pos] = '\n';
+        pos++;
+      }
+      last_pos = i;
+    }
+  }
+  if (last_pos > 0) {
+    int line_len = last_pos;
+    strncpy(new_string + pos, s, line_len);
+    pos += line_len;
+    if (last_pos < len && s[last_pos] == '\n') {
+      new_string[pos] = '\n';
+      pos++;
+    }
+  }
+  new_string[pos] = 0;
+  return new_string;
+}
+
+void delete_last_char(char* s, char c) {
+  char* last = strrchr(s, c);
+  if (last) memmove(last, last + 1, strlen(last));
+}
 void free_parsed_data(parsed_data* p) {
   if (p->name) free(p->name);
   if (p->next) free_parsed_data(p->next);
