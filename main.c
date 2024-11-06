@@ -8,7 +8,7 @@
 int main(int argc, char** argv)
 {
   if (argc < 3) {
-    printf("usage: ajit <arch> <code> <emit_function_8> <emit_function_16> <emit_function_32> <emit_function_64>\n");
+    printf("usage: dynastone <arch> <code> <emit_function_8> <emit_function_16> <emit_function_32> <emit_function_64>\n");
     exit(0);
   }
   bool direct = true;
