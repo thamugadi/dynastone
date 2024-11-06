@@ -1,5 +1,6 @@
 # dynastone
 This project uses Keystone Assembler to assemble instructions by leaving "holes" in certain operands, which are to be replaced by a variable specified along with its size using a special syntax. At the end, a C code is generated, intended to contain calls to an emitter, such as those commonly used in JIT compilers.
+It works in a similar way to a dynamic assembler like LuaJIT's dynasm.
 
 Usage:
 ``dynastone <arch> <code> <emit_function_8> <emit_function_16> <emit_function_32> <emit_function_64>``
