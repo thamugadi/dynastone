@@ -14,9 +14,7 @@ int main(int argc, char** argv)
   bool direct = true;
   int i = 0;
   while(argv[2][i]) {
-    if (argv[2][i] == SPECIAL) {
-      direct = false;
-    }
+    if (argv[2][i] == SPECIAL) direct = false;
     i++;
   }
   char *emit_8, *emit_16, *emit_32, *emit_64;
@@ -53,6 +51,7 @@ int main(int argc, char** argv)
       strcat(c_code, buffer);
     }
     printf("%s", c_code);
+    free(c_code);
     exit(0);
   }
   
