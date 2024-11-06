@@ -7,13 +7,17 @@ Usage:
 
 Example:
 
-```$ ./dynastone "x64" "mov rdi, |var1,64|" "emit_8"
+```
+$ ./dynastone "x64" "mov rdi, |var1,64|" "emit_8"
+
 emit_8(0x48);
 emit_8(0xbf);
 emit_64(var1);
 ```
 
-```$ ./dynastone "ppc64be" "addi |var1,5|,|var2,5|,|var3, 16|" "emit_8" "emit_16"
+```
+$ ./dynastone "ppc64be" "addi |var1,5|,|var2,5|,|var3, 16|" "emit_8" "emit_16"
+
 emit_8(0x38 | (var1 & 0x03));
 emit_8(0x00 | (((var1 >> 2) & 0x07) << 5) | (var2 & 0x1f));
 emit_16(var3);
