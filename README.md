@@ -16,5 +16,50 @@ emit_16(var3);
 ```
 The user must specify the maximum operand size, in bits. If there is a minimum size below which the instruction structure changes, it is the user's responsibility to ensure the specified variable does not fall below this size.
 
+An instruction with multiple immediate operands where the order of their occurrence in the generated machine code is different from the order of their occurrence in the mnemonic instruction, unless its architecture has a big-endian equivalent supported by keystone where the order matches, will not be supported.
+
 # Integration with text editors
 An interesting application of this project could be integration with text editors to directly generate calls to emitters, based on instructions written with placeholders in the syntax of the tool, which would be written in comments.
+
+An integration with emacs could take this form:
+
+```elisp
+(defvar *dynastone-bin* "{path to dynastone binary file}")
+(defvar *emit-8* "emit_8") (defvar *emit-16* "emit_16") (defvar *emit-32* "emit_32") (defvar *emit-64* "emit_64") 
+(defvar *arch* "x64")
+
+(defun append-f-comment-to-lines (f)
+  (when (use-region-p)
+    (save-excursion
+      (save-restriction
+        (narrow-to-region (region-beginning) (region-end))
+        (goto-char (point-min))
+        (while (re-search-forward "^\\([ \t]*\\)//[ \t]*\\(.*\\)$" nil t)
+          (let* ((indent (match-string 1))
+                 (comment (match-string 2))
+                 (result-lines (split-string (funcall f comment) "\n" t))
+                 (last-index (1- (length result-lines))))
+            (end-of-line)
+            (newline)
+            (dolist (line result-lines)
+              (insert indent line)
+              (unless (eq (cl-position line result-lines) last-index)
+                (newline)))))))))
+
+(defun send-to-dynastone (comment-text)
+  (let* ((args (list *arch* comment-text *emit-8* *emit-16* *emit-32* *emit-64*))
+         (output-buffer (generate-new-buffer "*dynastone-output*")))
+    (unwind-protect
+        (progn
+          (apply 'call-process *dynastone-bin* nil output-buffer nil args)
+          (with-current-buffer output-buffer
+            (string-trim (buffer-string))))
+      (kill-buffer output-buffer))))
+
+(defun run-dynastone ()
+  (interactive)
+  (append-f-comment-to-lines 'send-to-dynastone))
+(global-set-key (kbd "C-c f") 'run-dynastone)
+```
+A demonstration:
+![](https://i.imgur.com/uBcNsQO.gif)

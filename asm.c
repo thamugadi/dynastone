@@ -12,7 +12,7 @@
 char* generate_c_code(chunk_struct* chunk, char* emit_8, char* emit_16, char* emit_32, char* emit_64, int* size) {
   char* c_code = (char*)calloc(1, 0x1000);
   char buffer[0x200];
-  uint8_t base;
+  uint8_t base = 0;
   char* current_var = NULL;
   int current_start = -1, current_end = -1;
   int current_end_in_byte = -1;
@@ -28,8 +28,7 @@ char* generate_c_code(chunk_struct* chunk, char* emit_8, char* emit_16, char* em
       }
 
       *size += 1;
-      if (base) sprintf(buffer, "%s(0x%02x", emit_8, base);
-      else sprintf(buffer, "%s(", emit_8);
+      sprintf(buffer, "%s(0x%02x", emit_8, base);
       strcat(c_code, buffer);
 
       current_var = NULL;
@@ -51,8 +50,7 @@ char* generate_c_code(chunk_struct* chunk, char* emit_8, char* emit_16, char* em
               shift = 7 - current_end_in_byte;
 
 	      int len;
-	      if (base) len = sprintf(buffer, " | ((");
-	      else len = sprintf(buffer, "((");
+	      len = sprintf(buffer, " | ((");
 	      if (current_start) {
 	        len += sprintf(buffer+len, "(%s >> %d)", current_var, current_start);
 	      }
@@ -83,7 +81,9 @@ char* generate_c_code(chunk_struct* chunk, char* emit_8, char* emit_16, char* em
           int mask = (1 << size) - 1;
           shift = 7 - current_end_in_byte;
 
-	  int len = sprintf(buffer, " | ((");
+	  int len;
+
+	  len = sprintf(buffer, " | ((");
 	  if (current_start) {
 	    len += sprintf(buffer+len, "(%s >> %d)", current_var, current_start);
 	  }
@@ -112,6 +112,9 @@ char* generate_c_code(chunk_struct* chunk, char* emit_8, char* emit_16, char* em
         shift = 7 - current_end_in_byte;
 
 	int len = sprintf(buffer, " | ((");
+
+	len = sprintf(buffer, " | ((");
+
         if (current_start) {
 	  len += sprintf(buffer+len, "(%s >> %d)", current_var, current_start);
 	}
