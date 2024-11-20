@@ -27,7 +27,7 @@ The user must specify the maximum operand size, in bits. If there is a minimum s
 
 **An instruction with multiple immediate operands where the order of their occurrence in the generated machine code is different from the order of their occurrence in the mnemonic instruction, unless its architecture has a big-endian equivalent supported by keystone where the order matches, will not be supported.**
 
-**In its current state, it will not work for instructions where the mnemonic syntax presents the instruction as having one operand, but where it is discontinuous in the assembled code, such as ``mov reg, #imm`` with ``imm`` > 255 in ARMv6T2 and later.**
+**In its current state, it will not work for instructions where the mnemonic syntax presents the instruction as having one operand, but where it is discontinuous in the assembled code, such as ``mov reg, #imm`` with ``imm`` > 255 in ARMv6T2 and later.** (unless it is treated as 2 successive operands in the dynastone syntax)
 
 # Integration with text editors
 An interesting application of this project could be integration with text editors to directly generate calls to emitters, based on instructions written with placeholders in the syntax of the tool, which would be written in comments.
