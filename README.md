@@ -25,7 +25,7 @@ emit_16(var3);
 
 The user must specify the maximum operand size, in bits. If there is a minimum size below which the instruction structure changes, it is the user's responsibility to ensure the specified variable does not fall below this size.
 
-An instruction with multiple immediate operands where the order of their occurrence in the generated machine code is different from the order of their occurrence in the mnemonic instruction, unless its architecture has a big-endian equivalent supported by keystone where the order matches, will not be supported.
+**An instruction with multiple immediate operands where the order of their occurrence in the generated machine code is different from the order of their occurrence in the mnemonic instruction, unless its architecture has a big-endian equivalent supported by keystone where the order matches, will not be supported.**
 
 **In its current state, it will not work for instructions where the mnemonic syntax presents the instruction as having one operand, but where it is discontinuous in the assembled code, such as ``mov reg, #imm`` with ``imm`` > 255 in ARMv6T2 and later.**
 
